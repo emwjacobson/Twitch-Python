@@ -36,8 +36,9 @@ class IRC(threading.Thread):
 
                 if text.find('PING') >= 0:
                     self.send_raw('PONG ' + text.split()[1])
+                    return
 
-                if text.find('Login authentication failed') > 0:
+                if text.find('Login authentication failed') > 0 and PRIVMSG not in text:
                     logging.fatal('IRC authentication error: ' + text or '')
                     return
 
