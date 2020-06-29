@@ -8,7 +8,7 @@ from rx.subject import Subject
 
 class IRC(threading.Thread):
 
-    def __init__(self, nickname: str, password: str, address: str = 'irc.chat.twitch.tv', port: int = 6667):
+    def __init__(self, nickname: str, password: str, address: str = 'irc.chat.twitch.tv', port: int = 6667, capture_commands: bool = False):
         super().__init__()
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,12 +17,17 @@ class IRC(threading.Thread):
         self.channels: List[str] = []
         self.nickname: str = nickname
         self.password: str = 'oauth:' + password.lstrip('oauth:')
+        self.capture_commands = capture_commands
         self.active: bool = True
         self.incoming: Subject = Subject()
 
     def run(self):
         self.connect()
         self.authenticate()
+        self.request_tags()
+
+        if self.capture_commands:
+            self.request_commands()
 
         while self.active:
             try:
@@ -56,6 +61,12 @@ class IRC(threading.Thread):
     def authenticate(self) -> None:
         self.send_raw(f'PASS {self.password}')
         self.send_raw(f'NICK {self.nickname}')
+
+    def request_tags(self) -> None:
+        self.send_raw('CAP REQ :twitch.tv/tags')
+
+    def request_commands(self) -> None:
+        self.send_raw('CAP REQ :twitch.tv/commands')
 
     def join_channel(self, channel: str) -> None:
         channel = channel.lstrip('#')

@@ -9,7 +9,7 @@ import twitch.chat as chat
 
 class Chat(Subject):
 
-    def __init__(self, channel: str, nickname: str, oauth: str, helix: Optional['twitch.Helix'] = None):
+    def __init__(self, channel: str, nickname: str, oauth: str, capture_commands: bool = False, helix: Optional['twitch.Helix'] = None):
         """
         :param channel: Channel name
         :param nickname: User nickname
@@ -19,7 +19,9 @@ class Chat(Subject):
         super().__init__()
         self.helix: Optional['twitch.Helix'] = helix
 
-        self.irc = chat.IRC(nickname, password=oauth)
+        self.capture_commands = capture_commands
+
+        self.irc = chat.IRC(nickname, password=oauth, capture_commands=self.capture_commands)
         self.irc.incoming.subscribe(self._message_handler)
         self.irc.start()
 
@@ -35,11 +37,66 @@ class Chat(Subject):
 
         text = data.decode("UTF-8").strip('\n\r')
 
+        # Handler for normal chat messages, send via PRIVMSG
         if text.find('PRIVMSG') >= 0:
-            sender = text.split('!', 1)[0][1:]
-            message = text.split('PRIVMSG', 1)[1].split(':', 1)[1]
+            s = text.split(" ", 1)
+            tags = s[0][1:].split(';')
+            msg = s[1]
+
+            t = {}
+            for tag in tags:
+                i, d = tag.split('=')
+                t[i] = d
+
+            sender = msg.split('!', 1)[0][1:]
+            message = msg.split('PRIVMSG', 1)[1].split(':', 1)[1]
+
             self.on_next(
-                chat.Message(channel=self.channel, sender=sender, text=message, helix_api=self.helix, chat=self))
+                chat.Message(message_type=chat.MessageType.CHAT, channel=self.channel, sender=sender, text=message, tags=t, helix_api=self.helix, chat=self)
+            )
+        # Handles chat commands if capture_commands is True
+        elif self.capture_commands and ':tmi.twitch.tv' in text:
+            tags, cmd = text.split(":tmi.twitch.tv", 1)
+            args = cmd.strip().split(" ")
+
+            cmd_type = None
+            text = None
+            if args[0] == "CLEARCHAT":
+                cmd_type = chat.CommandType.CLEARCHAT
+                if len(args) >= 3:
+                    text = args[2][1:]
+            elif args[0] == "CLEARMSG":
+                cmd_type = chat.CommandType.CLEARMSG
+                if len(args) >= 3:
+                    text = args[2][1:]
+            elif args[0] == "HOSTTARGET":
+                cmd_type = chat.CommandType.HOSTTARGET
+                if len(args) >= 3:
+                    text = " ".join(args[2])[1:]
+            elif args[0] == "NOTICE":
+                cmd_type = chat.CommandType.NOTICE
+                text = " ".join(args[2:])[1:]
+            elif args[0] == "RECONNECT":
+                cmd_type = chat.CommandType.RECONNECT
+            elif args[0] == "ROOMSTATE":
+                cmd_type = chat.CommandType.ROOMSTATE
+            elif args[0] == "USERNOTICE":
+                cmd_type = chat.CommandType.USERNOTICE
+                if len(args) >= 3:
+                    text = " ".join(args[2:])[1:]
+            elif args[0] == "USERSTATE":
+                cmd_type = chat.CommandType.USERSTATE
+            else:
+                return
+
+            t = {}
+            for tag in tags[1:].split(';'):
+                i, d = tag.split('=')
+                t[i] = d
+
+            self.on_next(
+                chat.Message(message_type=chat.MessageType.COMMAND, channel=self.channel, sender=None, text=text, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
+            )
 
     def send(self, message: str) -> None:
         while not self.joined:
