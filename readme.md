@@ -69,8 +69,23 @@ for user, videos in helix.users(['sodapoppin', 'reckful']).videos(first=5):
 ```python
 # Twitch Chat
 
-twitch.Chat(channel='#sodapoppin', nickname='zarlach', oauth='oauth:xxxxxx').subscribe(
-        lambda message: print(message.channel, message.user.display_name, message.text))
+def handle_message(message):
+    if message.type == twitch.chat.MessageType.CHAT:
+        print(message.channel, message.user.display_name, message.text)
+    elif message.type == twitch.chat.MessageType.COMMAND:
+        # List of commands can be found at: https://dev.twitch.tv/docs/irc/commands
+        # Some commands will have tags associated with them
+
+        # Each command can have different tags associated with it, they are stored as
+        # a dict in the `tags` attribute.
+        # The tags associated with each command can be found at:
+        # https://dev.twitch.tv/docs/irc/tags
+        if message.command_type == twitch.chat.CommandType.USERNOTICE:
+            print(message.tags)
+
+# If you would like to capture commands sent from the server, set `capture_commands`
+# to true. Defaults to False.
+twitch.Chat(channel='#sodapoppin', nickname='zarlach', capture_commands=True, oauth='oauth:xxxxxx').subscribe(handle_message)
 ```
 
 ### Features
