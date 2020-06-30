@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import Optional, Union
 
 from rx.subject import Subject
 
@@ -9,7 +9,7 @@ import twitch.chat as chat
 
 class Chat(Subject):
 
-    def __init__(self, channel: str, nickname: str, oauth: str, capture_commands: bool = False, helix: Optional['twitch.Helix'] = None):
+    def __init__(self, channel: Union[str, list], nickname: str, oauth: str, capture_commands: bool = False, helix: Optional['twitch.Helix'] = None):
         """
         :param channel: Channel name
         :param nickname: User nickname
@@ -25,21 +25,28 @@ class Chat(Subject):
         self.irc.incoming.subscribe(self._message_handler)
         self.irc.start()
 
-        self.channel = channel.lstrip('#')
+        self.channel = channel
         self.joined: bool = False
 
     def _message_handler(self, data: bytes) -> None:
         # First messages are server connection messages,
         # which should be handled by joining the chat room.
         if not self.joined:
-            self.irc.join_channel(self.channel)
-            self.joined = True
+            if isinstance(self.channel, str):
+                self.irc.join_channel(self.channel)
+                self.joined = True
+            elif isinstance(self.channel, list):
+                for chan in self.channel:
+                    self.irc.join_channel(chan)
+                self.joined = True
 
         text = data.decode("UTF-8").strip('\n\r')
 
         # Handler for normal chat messages, send via PRIVMSG
         if text.find('PRIVMSG') >= 0:
-            s = text.split(" ", 1)
+            c = text.split(' PRIVMSG ', 1)[1].split()[0].lstrip('#')
+
+            s = text.split(' ', 1)
             tags = s[0][1:].split(';')
             msg = s[1]
 
@@ -52,7 +59,7 @@ class Chat(Subject):
             message = msg.split('PRIVMSG', 1)[1].split(':', 1)[1]
 
             self.on_next(
-                chat.Message(message_type=chat.MessageType.CHAT, channel=self.channel, sender=sender, text=message, tags=t, helix_api=self.helix, chat=self)
+                chat.Message(message_type=chat.MessageType.CHAT, channel=c, sender=sender, text=message, tags=t, helix_api=self.helix, chat=self)
             )
         # Handles chat commands if capture_commands is True
         elif self.capture_commands and ':tmi.twitch.tv' in text:
@@ -89,13 +96,15 @@ class Chat(Subject):
             else:
                 return
 
+            c = args[1].lstrip('#')
+
             t = {}
             for tag in tags[1:].split(';'):
                 i, d = tag.split('=')
                 t[i] = d
 
             self.on_next(
-                chat.Message(message_type=chat.MessageType.COMMAND, channel=self.channel, sender=None, text=text, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
+                chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=text, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
             )
 
     def send(self, message: str) -> None:
