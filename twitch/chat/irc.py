@@ -45,7 +45,8 @@ class IRC(threading.Thread):
                 # Publish data to subscribers
                 self.incoming.on_next(data)
 
-            except IOError:
+            except IOError as e:
+                logging.fatal('IOError', e)
                 break
 
     def send_raw(self, message: str) -> None:
