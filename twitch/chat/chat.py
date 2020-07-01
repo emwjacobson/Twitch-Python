@@ -67,22 +67,22 @@ class Chat(Subject):
             args = cmd.strip().split(" ")
 
             cmd_type = None
-            text = None
+            msg = None
             if args[0] == "CLEARCHAT":
                 cmd_type = chat.CommandType.CLEARCHAT
                 if len(args) >= 3:
-                    text = args[2][1:]
+                    msg = args[2][1:]
             elif args[0] == "CLEARMSG":
                 cmd_type = chat.CommandType.CLEARMSG
                 if len(args) >= 3:
-                    text = args[2][1:]
+                    msg = args[2][1:]
             elif args[0] == "HOSTTARGET":
                 cmd_type = chat.CommandType.HOSTTARGET
                 if len(args) >= 3:
-                    text = " ".join(args[2])[1:]
+                    msg = " ".join(args[2])[1:]
             elif args[0] == "NOTICE":
                 cmd_type = chat.CommandType.NOTICE
-                text = " ".join(args[2:])[1:]
+                msg = " ".join(args[2:])[1:]
             elif args[0] == "RECONNECT":
                 cmd_type = chat.CommandType.RECONNECT
             elif args[0] == "ROOMSTATE":
@@ -90,10 +90,11 @@ class Chat(Subject):
             elif args[0] == "USERNOTICE":
                 cmd_type = chat.CommandType.USERNOTICE
                 if len(args) >= 3:
-                    text = " ".join(args[2:])[1:]
+                    msg = " ".join(args[2:])[1:]
             elif args[0] == "USERSTATE":
                 cmd_type = chat.CommandType.USERSTATE
             else:
+                # print("Command else", text)
                 return
 
             c = args[1].lstrip('#')
@@ -104,8 +105,10 @@ class Chat(Subject):
                 t[i] = d
 
             self.on_next(
-                chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=text, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
+                chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=msg, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
             )
+        # else:
+        #     print("Outside else", text)
 
     def send(self, message: str) -> None:
         while not self.joined:
