@@ -100,9 +100,10 @@ class Chat(Subject):
             c = args[1].lstrip('#')
 
             t = {}
-            for tag in tags[1:].split(';'):
-                i, d = tag.split('=')
-                t[i] = d
+            if ';' in tags:
+                for tag in tags[1:].split(';'):
+                    i, d = tag.split('=')
+                    t[i] = d
 
             self.on_next(
                 chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=msg, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type, raw=text)
