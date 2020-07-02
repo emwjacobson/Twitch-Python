@@ -59,7 +59,7 @@ class Chat(Subject):
             message = msg.split('PRIVMSG', 1)[1].split(':', 1)[1]
 
             self.on_next(
-                chat.Message(message_type=chat.MessageType.CHAT, channel=c, sender=sender, text=message, tags=t, helix_api=self.helix, chat=self)
+                chat.Message(message_type=chat.MessageType.CHAT, channel=c, sender=sender, text=message, tags=t, helix_api=self.helix, chat=self, raw=text)
             )
         # Handles chat commands if capture_commands is True
         elif self.capture_commands and ':tmi.twitch.tv' in text:
@@ -105,7 +105,7 @@ class Chat(Subject):
                 t[i] = d
 
             self.on_next(
-                chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=msg, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type)
+                chat.Message(message_type=chat.MessageType.COMMAND, channel=c, sender=None, text=msg, tags=t, helix_api=self.helix, chat=self, command_type=cmd_type, raw=text)
             )
         # else:
         #     print("Outside else", text)

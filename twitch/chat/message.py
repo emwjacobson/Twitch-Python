@@ -29,7 +29,8 @@ class Message:
                  tags: dict,
                  helix_api: Optional[Helix] = None,
                  chat: Optional[Chat] = None,
-                 command_type: Optional[CommandType] = None):
+                 command_type: Optional[CommandType] = None,
+                 raw: Optional[str] = None):
         self.message_type: MessageType = message_type
         self.channel: str = channel
         self.sender: str = sender
@@ -39,6 +40,7 @@ class Message:
         self.chat: Optional[Chat] = chat
         self.command_type: Optional[CommandType] = command_type
         self.timestamp = time.time()
+        self.raw: Optional[str] = raw
 
     @property
     def user(self) -> Optional[User]:
