@@ -1,5 +1,6 @@
 from typing import Optional
 from enum import Enum
+import time
 
 from twitch.helix import User, Helix
 from .chat import Chat
@@ -37,6 +38,7 @@ class Message:
         self.helix: Optional[Helix] = helix_api
         self.chat: Optional[Chat] = chat
         self.command_type: Optional[CommandType] = command_type
+        self.timestamp = time.time()
 
     @property
     def user(self) -> Optional[User]:
