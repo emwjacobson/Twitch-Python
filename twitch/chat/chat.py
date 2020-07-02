@@ -111,8 +111,10 @@ class Chat(Subject):
         #     print("Outside else", text)
 
     def send(self, message: str) -> None:
-        while not self.joined:
-            time.sleep(0.01)
+        if not self.joined:
+            raise ConnectionError("No channels joined.")
+        # while not self.joined:
+        #     time.sleep(0.01)
         self.irc.send_message(message=message, channel=self.channel)
 
     def __del__(self):
