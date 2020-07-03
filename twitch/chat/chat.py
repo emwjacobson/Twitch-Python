@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from rx.subject import Subject
 
@@ -27,6 +27,15 @@ class Chat(Subject):
 
         self.channel = channel
         self.joined: bool = False
+
+    def join_channel(self, channel: str) -> None:
+        self.irc.join_channel(channel)
+
+    def leave_channel(self, channel: str) -> None:
+        self.irc.leave_channel(channel)
+
+    def get_channels(self) -> List[str]:
+        return self.irc.channels
 
     def _message_handler(self, data: bytes) -> None:
         # First messages are server connection messages,

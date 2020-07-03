@@ -72,6 +72,8 @@ class IRC(threading.Thread):
 
     def join_channel(self, channel: str) -> None:
         channel = channel.lstrip('#')
+        if channel in self.channels:
+            return
         self.channels.append(channel)
         self.send_raw(f'JOIN #{channel}')
 
@@ -82,8 +84,9 @@ class IRC(threading.Thread):
 
     def leave_channels(self, channels: List[str]) -> None:
         channels = [channel.lstrip('#') for channel in channels]
-        [self.channels.remove(channel) for channel in channels]
-        self.send_raw('PART #' + '#'.join(channels))
+        [self.leave_channel(channel) for channel in channels]
+        # [self.channels.remove(channel) for channel in channels]
+        # self.send_raw('PART #' + '#'.join(channels))
 
     def _read_line(self) -> bytes:
         data: bytes = b''
